@@ -1,5 +1,9 @@
 package qqmusic;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -13,23 +17,23 @@ import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 
 public class GetSingerId {
-    private static Logger logger = LoggerFactory.getLogger(GetSingerId.class);
+    private static Logger logger = LoggerFactory.getLogger(GetSingerId .class);
 
     public static void main(String[] args)
             throws IOException {
 
         Map<String, String> argMap = util.CmdlineParser.parse(args);
 
-        String input = argMap.get("input");
+        String input = argMap.get("input1");
+        String inputUrl = argMap.get("inputurl");
         String output = argMap.get("output");
 
 
-        if (input == null || output == null ) {
-            logger.info("You should specify urls, outputDir");
+        if (inputUrl == null || output == null || input==null ) {
+            logger.info("You should specify input,inputUrl and outputDir");
             System.exit(1);
         }
 
@@ -37,17 +41,31 @@ public class GetSingerId {
             output = output + "/";
         }
 
-
         try{
             FileSystem fs = util.HdfsUtil.getDefaultFileSystem();
 
+            Set<String> urlCrawled=new HashSet<>();
+            List<Path> htmlCrawledPathList = util.HdfsUtil.getPathList(fs, inputUrl);
+
+            for (org.apache.hadoop.fs.Path Path: htmlCrawledPathList ){
+                logger.info("Process file: {}", Path);
+                FSDataInputStream fis = fs.open(Path);
+                BufferedReader br = new BufferedReader(new InputStreamReader(fis));
+                while(true){
+                    String line = br.readLine();//文件较大，内存不够，因此每次只读取一行
+                    if (line == null) {
+                        break;
+                    }
+                    String url=line.replace("http://","")
+                            .replace("\n","").trim();
+                    logger.info("crawled url: {}", url);
+                    urlCrawled.add(url);
+                }
+            }
+
+
             List<Path> htmlPathList = util.HdfsUtil.getPathList(fs, input);
-
-            Set<String> urlList=new HashSet<>();
-
-
-
-            Pattern singrtUrlPattern=Pattern.compile("https://y.qq.com/n/yqq/singer/(.*?)\\.html");
+            Set<String> idList=new HashSet<>();
 
             for (org.apache.hadoop.fs.Path Path: htmlPathList){
                 logger.info("Process file: {}", Path);
@@ -58,12 +76,37 @@ public class GetSingerId {
                     if (line == null) {
                         break;
                     }
-                    logger.info("line Url {} ",line);
-                    Matcher singerUrlMatcher=singrtUrlPattern.matcher(line);
-                    if(singerUrlMatcher.find()) {
-                        String url=singerUrlMatcher.group(1);
-                        urlList.add(url);
-                        logger.info("Siner Url {} ",url);
+
+                    Gson gson=new Gson();
+                    JsonObject jsonObj=gson.fromJson(line, JsonObject.class);
+                    if(jsonObj.has("singer")){
+                        JsonArray singers=jsonObj.getAsJsonArray("singer");//若该singer的key找不到会报错
+                        logger.info("line singers{} ",singers.toString());
+                        if(singers.size()>0){
+                            for (Object singer : singers) {
+                                if(singer instanceof JsonObject)
+                                {
+                                    String url=((JsonObject) singer).get("singerUrl").toString();
+                                    logger.info("url {}",url);
+                                    url=url.replace("https://","")
+                                            .replace("\"","")
+                                            .replace("\n","")
+                                            .trim();
+                                    logger.info("url {}",url);
+                                    if(urlCrawled.contains(url)){
+                                        logger.info("urlcrawled {}",url);
+                                        continue;
+                                    }
+                                    else{
+                                        String singerId=((JsonObject) singer).get("singerId").toString().replace("\"","");
+                                        String pre="https://y.qq.com/n/m/detail/singer/index.html?ADTAG=newyqq.singer&source=ydetail&singerId=";
+                                        singerId=pre.concat(singerId);
+                                        logger.info("urlcrawled size {} url {} idList {}",urlCrawled.size(),url,singerId);
+                                        idList.add(singerId);
+                                    }
+                                }
+                            }
+                        }
                     }
 
                 }
@@ -72,11 +115,11 @@ public class GetSingerId {
             }
             DateFormat datetimeFormat = new SimpleDateFormat("yyyyMMddHHmmss");
             String datetimeStr = datetimeFormat.format(new Date());
-            String parseSinger= output + "SingerUrl" + datetimeStr;
+            String parseSinger= output + "uncrawledSingerUrl" + datetimeStr;
 
             FSDataOutputStream fow = fs.create(new Path(parseSinger));
 
-            util.HdfsUtil.writeLineList(urlList, fs, new Path(parseSinger), false);
+            util.HdfsUtil.writeLineList(idList, fs, new Path(parseSinger), false);
 
             fow.close();
 
