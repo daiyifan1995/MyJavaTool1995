@@ -1,15 +1,13 @@
+package hudongbaike
+
 import java.util
-import java.util.{List, Set}
 import java.util.regex.Pattern
 
 import org.apache.hadoop.fs.{FileSystem, Path, Trash}
-import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
-object SparkExtractUrlFromHtml {
-
-
+object ExtractUserFromHtml {
   def main(args: Array[String]): Unit = {
     val sc = new SparkContext(new SparkConf().setAppName(getClass.getSimpleName))
     if (args.length < 2) {
@@ -25,7 +23,7 @@ object SparkExtractUrlFromHtml {
 
     // for 循环
     for( idx <- 0 until args.length - 1){
-      var newIdsRdd = Helper.getRddFromHdfs(sc, args(idx))
+      var newIdsRdd =  util.ScalaUtil.getRddFromHdfs(sc, args(idx))
       if (allRdd == null){
         allRdd = newIdsRdd
       } else {
@@ -35,11 +33,12 @@ object SparkExtractUrlFromHtml {
     val output = args(args.length - 1)
     if (FileSystem.get(sc.hadoopConfiguration).exists(new Path(output))) new Trash(sc.hadoopConfiguration).moveToTrash(new Path(output))
 
-    var host:String="https://baike.baidu.com/"
+    var host:String="http://i.baike.com/"
     var patterns: util.List[Pattern]=new util.LinkedList[Pattern]()
-    patterns.add(Pattern.compile("(item/.*)"))
+    patterns.add(Pattern.compile("useriden=(.*)&prd="))
 
-    SparkExtractUrlFromHtml.extractUrlFromHtml(allRdd,host,patterns,output)
+
+    ExtractUserFromHtml.extractUrlFromHtml(allRdd,host,patterns,output)
 
   }
 
@@ -50,16 +49,13 @@ object SparkExtractUrlFromHtml {
 
       .flatMap((html)=>{
 
-      var wordList = ExtractUrlFromHtml.extractUrlFromHtml(html.toString(),host,patterns)
-      wordList.toArray()
-    }
-    )
-
+        var wordList = utilby.ExtractUrlFromHtml.extractUrlFromHtml(html.toString(),host,patterns)
+        wordList.toArray()
+      }
+      )
+      .map("http://i.baike.com/profile.do?action=more&useriden="+_+"&t=0.7325755269688712")
       .distinct()
-
     retRdd.coalesce(1).saveAsTextFile(output)
-
   }
 
 }
-

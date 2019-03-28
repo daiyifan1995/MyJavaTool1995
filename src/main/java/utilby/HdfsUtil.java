@@ -1,4 +1,4 @@
-package util;
+package utilby;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;
@@ -16,6 +16,7 @@ import java.util.*;
 public class HdfsUtil {
 	
 	public static final String PATH_SEPERATOR = ";";
+
 	private static final Logger logger = LoggerFactory.getLogger(HdfsUtil.class);
 	
 	public static List<Path> getPathList(FileSystem fs, String pathStr) {

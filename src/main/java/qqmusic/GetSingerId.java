@@ -25,7 +25,7 @@ public class GetSingerId {
     public static void main(String[] args)
             throws IOException {
 
-        Map<String, String> argMap = util.CmdlineParser.parse(args);
+        Map<String, String> argMap = utilby.CmdlineParser.parse(args);
 
         String input = argMap.get("input1");
         String inputUrl = argMap.get("inputurl");
@@ -42,10 +42,10 @@ public class GetSingerId {
         }
 
         try{
-            FileSystem fs = util.HdfsUtil.getDefaultFileSystem();
+            FileSystem fs = utilby.HdfsUtil.getDefaultFileSystem();
 
             Set<String> urlCrawled=new HashSet<>();
-            List<Path> htmlCrawledPathList = util.HdfsUtil.getPathList(fs, inputUrl);
+            List<Path> htmlCrawledPathList = utilby.HdfsUtil.getPathList(fs, inputUrl);
 
             for (org.apache.hadoop.fs.Path Path: htmlCrawledPathList ){
                 logger.info("Process file: {}", Path);
@@ -64,7 +64,7 @@ public class GetSingerId {
             }
 
 
-            List<Path> htmlPathList = util.HdfsUtil.getPathList(fs, input);
+            List<Path> htmlPathList = utilby.HdfsUtil.getPathList(fs, input);
             Set<String> idList=new HashSet<>();
 
             for (org.apache.hadoop.fs.Path Path: htmlPathList){
@@ -119,7 +119,7 @@ public class GetSingerId {
 
             FSDataOutputStream fow = fs.create(new Path(parseSinger));
 
-            util.HdfsUtil.writeLineList(idList, fs, new Path(parseSinger), false);
+            utilby.HdfsUtil.writeLineList(idList, fs, new Path(parseSinger), false);
 
             fow.close();
 

@@ -1,3 +1,5 @@
+package utilby;
+
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Date;
@@ -9,9 +11,9 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StringUtil {
+public class Stringutil {
 
-    private static final Logger logger = LoggerFactory.getLogger(StringUtil.class);
+    private static final Logger logger = LoggerFactory.getLogger(Stringutil.class);
 
     public static String decode(String str) {
         try {

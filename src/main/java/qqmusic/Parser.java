@@ -30,7 +30,7 @@ public class Parser {
     public static void main(String[] args)
             throws IOException {
 
-        Map<String, String> argMap = util.CmdlineParser.parse(args);
+        Map<String, String> argMap = utilby.CmdlineParser.parse(args);
 
         String input = argMap.get("input");
         String output = argMap.get("output");
@@ -50,9 +50,9 @@ public class Parser {
         }
 
         try{
-            FileSystem fs = util.HdfsUtil.getDefaultFileSystem();
+            FileSystem fs = utilby.HdfsUtil.getDefaultFileSystem();
 
-            List<Path> htmlPathList = util.HdfsUtil.getPathList(fs, input);
+            List<Path> htmlPathList = utilby.HdfsUtil.getPathList(fs, input);
 
             //Set<String> results=new HashSet<>();
 
